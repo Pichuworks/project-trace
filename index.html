@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TRACE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="studio-shell">
+      <header class="topbar">
+        <div class="topbar-copy compact">
+          <div class="brand-row">
+            <span class="brand-led"></span>
+            <p class="eyebrow">TRACE</p>
+          </div>
+          <p class="topbar-summary" data-i18n="topbar_summary">先拟合响应，再导出可用的 EQ。适用于车载调音和播放器音色匹配。</p>
+        </div>
+        <div class="topbar-side">
+          <select id="language-select" class="utility-select" aria-label="Language">
+            <option value="zh-CN">简中</option>
+            <option value="en">EN</option>
+          </select>
+          <div class="meter-card">
+            <span class="meter-label" data-i18n="response_delta">响应偏差</span>
+            <strong id="hero-delta">+/-0.0 dB</strong>
+          </div>
+        </div>
+      </header>
+
+      <main id="workspace" class="studio-layout">
+        <section class="left-rail workspace-panel">
+          <div class="panel-top">
+            <div>
+              <p class="eyebrow" data-i18n="workspace">工作区</p>
+              <h2 data-i18n="input_target">输入与目标</h2>
+            </div>
+            <div class="mode-toggle" role="tablist" aria-label="Calibration mode" data-i18n-aria-label="calibration_mode">
+              <button class="mode-button active" data-mode="car" role="tab" aria-selected="true">
+                <span data-i18n="mode_car">车载</span>
+              </button>
+              <button class="mode-button" data-mode="player" role="tab" aria-selected="false">
+                <span data-i18n="mode_player">播放器</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="stack-block">
+            <div class="block-heading">
+              <p class="eyebrow" data-i18n="source">输入</p>
+              <h3 data-i18n="measured_response">测得响应</h3>
+            </div>
+            <div class="control-group">
+              <label for="curve-source" data-i18n="curve_source">响应来源</label>
+              <select id="curve-source">
+                <option value="measurement" data-i18n="curve_source_measurement">实时分段扫频</option>
+                <option value="upload" data-i18n="curve_source_upload">上传 CSV（REW / sweep 工具）</option>
+              </select>
+            </div>
+            <div class="control-group hidden" id="upload-wrap">
+              <label for="curve-upload" data-i18n="csv_file">CSV 文件</label>
+              <input id="curve-upload" type="file" accept=".csv,text/csv" />
+              <p class="hint" data-i18n="csv_hint">两列即可：频率 Hz、声级 dB。</p>
+            </div>
+          </div>
+
+          <div class="stack-block">
+            <div class="block-heading">
+              <p class="eyebrow" data-i18n="measure">测量</p>
+              <h3 data-i18n="live_stepped_sweep">实时分段扫频</h3>
+            </div>
+            <p class="hint" data-i18n="measurement_hint">
+              将设备麦克风放在听音位置。应用会播放分段扫频，并提取一条相对响应曲线。
+            </p>
+            <div class="action-grid two-up">
+              <button id="start-measurement" class="primary-action" data-i18n="run_measurement">开始测量</button>
+              <button id="download-measurement" class="secondary-action" disabled data-i18n="download_curve">下载曲线</button>
+            </div>
+            <div class="action-grid two-up">
+              <button id="use-measurement" class="secondary-action" disabled data-i18n="use_measurement">使用测量结果</button>
+              <button id="clear-measurement" class="secondary-action" disabled data-i18n="clear">清除</button>
+            </div>
+            <div class="measurement-summary">
+              <span class="measurement-label" data-i18n="status">状态</span>
+              <strong id="measurement-summary">31 点扫频，锚定 1 kHz。</strong>
+            </div>
+            <p id="measurement-status" class="hint" data-i18n="measurement_status_default">
+              手机浏览器下属于尽力而为的测量方式。若设备允许，请关闭 AGC 或其他增强处理。
+            </p>
+          </div>
+
+          <div class="mode-section" data-mode-panel="car">
+            <div class="stack-block">
+              <div class="block-heading">
+                <p class="eyebrow" data-i18n="mode_car">车载</p>
+                <h3 data-i18n="target_profile">目标轮廓</h3>
+              </div>
+              <div class="control-group">
+                <label for="car-style" data-i18n="target_style">目标风格</label>
+                <select id="car-style">
+                  <option value="reference" data-i18n="style_reference">参考</option>
+                  <option value="warm" data-i18n="style_warm">偏暖</option>
+                  <option value="clarity" data-i18n="style_clarity">清晰</option>
+                  <option value="highway" data-i18n="style_highway">高速</option>
+                </select>
+              </div>
+              <div class="control-grid">
+                <div class="control-group">
+                  <label for="vehicle-class" data-i18n="vehicle_class">车辆类型</label>
+                  <select id="vehicle-class">
+                    <option value="sedan" data-i18n="vehicle_sedan">轿车</option>
+                    <option value="suv" data-i18n="vehicle_suv">SUV</option>
+                    <option value="hatch" data-i18n="vehicle_hatch">两厢 / 掀背</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label for="seat-focus" data-i18n="seat_focus">听位重点</label>
+                  <select id="seat-focus">
+                    <option value="driver" data-i18n="seat_driver">主驾</option>
+                    <option value="front-pair" data-i18n="seat_front_pair">前排双座</option>
+                    <option value="all-seats" data-i18n="seat_all">全车平均</option>
+                  </select>
+                </div>
+              </div>
+              <div class="control-grid">
+                <div class="control-group">
+                  <label for="noise-level" data-i18n="road_noise_bias">路噪偏置</label>
+                  <select id="noise-level">
+                    <option value="quiet" data-i18n="noise_quiet">安静 / 停车</option>
+                    <option value="urban" data-i18n="noise_urban">城市道路</option>
+                    <option value="highway" data-i18n="noise_highway">高速公路</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label for="airiness" data-i18n="treble_appetite">高频偏好</label>
+                  <input id="airiness" type="range" min="-2" max="2" step="0.5" value="0" />
+                  <p class="value-readout"><span id="airiness-readout">0.0</span> <span data-i18n="db_tilt">dB 倾斜</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mode-section hidden" data-mode-panel="player">
+            <div class="stack-block">
+              <div class="block-heading">
+                <p class="eyebrow" data-i18n="mode_player">播放器</p>
+                <h3 data-i18n="reference_matching">参考匹配</h3>
+              </div>
+              <div class="control-grid">
+                <div class="control-group">
+                  <label for="player-a" data-i18n="current_player_a">当前播放器 A</label>
+                  <select id="player-a">
+                    <option value="neutral-player" data-i18n="player_neutral">中性基线</option>
+                    <option value="warm-player" data-i18n="player_warm">偏暖播放器</option>
+                    <option value="loudness-player" data-i18n="player_loudness">响度增强 DSP</option>
+                    <option value="sparkle-player" data-i18n="player_sparkle">高频提亮</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label for="player-b" data-i18n="target_player_b">目标播放器 B</label>
+                  <select id="player-b">
+                    <option value="neutral-player" data-i18n="player_neutral">中性基线</option>
+                    <option value="warm-player" data-i18n="player_warm">偏暖播放器</option>
+                    <option value="loudness-player" data-i18n="player_loudness">响度增强 DSP</option>
+                    <option value="sparkle-player" data-i18n="player_sparkle">高频提亮</option>
+                  </select>
+                </div>
+              </div>
+              <div class="control-group">
+                <label for="match-focus" data-i18n="matching_focus">匹配重点</label>
+                <select id="match-focus">
+                  <option value="tonal" data-i18n="focus_tonal">只匹配音色平衡</option>
+                  <option value="presence" data-i18n="focus_presence">保留人声存在感</option>
+                  <option value="low-end" data-i18n="focus_low_end">优先低频听感</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack-block emphasis-block">
+            <div class="block-heading">
+              <p class="eyebrow" data-i18n="solver">求解器</p>
+              <h3 data-i18n="output_and_limits">输出与限制</h3>
+            </div>
+            <div class="control-grid">
+              <div class="control-group">
+                <label for="eq-topology" data-i18n="output_eq">输出 EQ</label>
+                <select id="eq-topology">
+                  <option value="all" data-i18n="output_all">全部输出</option>
+                  <option value="graphic10" data-i18n="output_graphic10">10 段图示 EQ</option>
+                  <option value="parametric" data-i18n="output_parametric">参数 EQ</option>
+                  <option value="hybrid" data-i18n="output_hybrid">混合摘要</option>
+                </select>
+              </div>
+              <div class="control-group">
+                <label for="max-boost" data-i18n="max_correction">最大修正</label>
+                <input id="max-boost" type="range" min="2" max="8" step="0.5" value="4" />
+                <p class="value-readout"><span data-i18n="clamp_at">限制在</span> <span id="max-boost-readout">4.0</span> dB</p>
+              </div>
+            </div>
+            <button id="fit-button" class="primary-action" data-i18n="generate_eq">生成 EQ</button>
+            <p class="hint" data-i18n="broad_corrections_hint">优先做宽带修正。窄陷波会被刻意弱化处理。</p>
+          </div>
+
+          <div class="stack-block">
+            <div class="block-heading">
+              <p class="eyebrow" data-i18n="presets">预设</p>
+              <h3 data-i18n="store_and_exchange">保存与交换</h3>
+            </div>
+            <div class="control-group">
+              <label for="preset-name" data-i18n="preset_name">预设名称</label>
+              <input id="preset-name" type="text" placeholder="主驾暖声夜间" data-i18n-placeholder="preset_name_placeholder" />
+            </div>
+            <div class="action-grid two-up">
+              <button id="save-preset" class="secondary-action" data-i18n="save_preset">保存预设</button>
+              <button id="copy-json" class="secondary-action" data-i18n="copy_json">复制 JSON</button>
+            </div>
+            <div class="control-group">
+              <label for="saved-presets" data-i18n="saved_presets">已存预设</label>
+              <select id="saved-presets">
+                <option value="" data-i18n="no_saved_presets">还没有已保存的预设</option>
+              </select>
+            </div>
+            <div class="action-grid two-up">
+              <button id="load-preset" class="secondary-action" data-i18n="load">加载</button>
+              <button id="delete-preset" class="secondary-action" data-i18n="delete">删除</button>
+            </div>
+            <div class="action-grid two-up">
+              <button id="download-preset" class="secondary-action" data-i18n="download_preset">下载预设</button>
+              <button id="import-preset-trigger" class="secondary-action" data-i18n="import_preset">导入预设</button>
+            </div>
+            <input id="preset-import" class="hidden" type="file" accept=".json,application/json" />
+            <p id="preset-status" class="hint" data-i18n="preset_status_default">本地存储仅保存在当前浏览器中。</p>
+          </div>
+
+          <div class="stack-block">
+            <div class="block-heading">
+              <p class="eyebrow" data-i18n="share">分享</p>
+              <h3 data-i18n="share_current_state">分享当前状态</h3>
+            </div>
+            <div class="action-grid two-up">
+              <button id="generate-link" class="secondary-action" data-i18n="generate_link">生成链接</button>
+              <button id="copy-link" class="secondary-action" data-i18n="copy_link">复制链接</button>
+            </div>
+            <div class="control-group">
+              <label for="share-link" data-i18n="share_url">分享链接</label>
+              <input id="share-link" type="text" readonly placeholder="生成一个编码当前状态的分享链接" data-i18n-placeholder="share_url_placeholder" />
+            </div>
+            <p id="share-status" class="hint" data-i18n="share_status_default">上传的曲线数据会被编码进分享状态中。</p>
+          </div>
+
+          <div class="quick-preset-board" aria-hidden="true">
+            <article>
+              <span class="quick-label" data-i18n="style_reference">参考</span>
+              <p data-i18n="quick_reference">适合作为大多数车厢和回放链路的平衡基线。</p>
+            </article>
+            <article>
+              <span class="quick-label" data-i18n="style_warm">偏暖</span>
+              <p data-i18n="quick_warm">补一点低中频厚度，同时收敛上沿锋利感。</p>
+            </article>
+            <article>
+              <span class="quick-label" data-i18n="style_clarity">清晰</span>
+              <p data-i18n="quick_clarity">增强存在感区域，同时控制最高频段不过亮。</p>
+            </article>
+            <article>
+              <span class="quick-label" data-i18n="style_highway">高速</span>
+              <p data-i18n="quick_highway">在路噪遮蔽下保住人声清晰度和低频重量感。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="right-stage workspace-panel">
+          <div class="stage-header">
+            <div>
+              <p class="eyebrow" data-i18n="result">结果</p>
+              <h2 data-i18n="correction_output">校正输出</h2>
+            </div>
+            <div class="stats-row">
+              <div>
+                <span class="stat-label" data-i18n="average_delta">平均偏差</span>
+                <strong id="avg-delta">0.0 dB</strong>
+              </div>
+              <div>
+                <span class="stat-label" data-i18n="treble_zone">高频区</span>
+                <strong id="treble-delta">0.0 dB</strong>
+              </div>
+              <div>
+                <span class="stat-label" data-i18n="bass_zone">低频区</span>
+                <strong id="bass-delta">0.0 dB</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-stage">
+            <div class="chart-frame">
+              <div class="chart-grid" aria-hidden="true"></div>
+              <canvas id="response-chart" width="960" height="520" aria-label="Response chart" data-i18n-aria-label="response_chart"></canvas>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <span class="legend-swatch measured"></span>
+                <span id="chart-measured-label">No measured data</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch target"></span>
+                <span id="chart-target-label" data-i18n="chart_target">目标曲线</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch corrected"></span>
+                <span id="chart-corrected-label" data-i18n="chart_corrected">校正后</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="results-stack">
+            <div class="output-grid">
+              <div id="graphic-section" class="result-block">
+                <div class="block-heading">
+                  <p class="eyebrow" data-i18n="eq_10_band">10 段 EQ</p>
+                  <h3 data-i18n="graphic">图示 EQ</h3>
+                </div>
+                <div id="graphic-output" class="eq-list"></div>
+              </div>
+              <div id="parametric-section" class="result-block">
+                <div class="block-heading">
+                  <p class="eyebrow" data-i18n="parametric_eq">参数 EQ</p>
+                  <h3 data-i18n="biquad_set">Biquad 组</h3>
+                </div>
+                <div id="parametric-output" class="eq-list"></div>
+              </div>
+              <div id="hybrid-section" class="result-block">
+                <div class="block-heading">
+                  <p class="eyebrow" data-i18n="hybrid_notes">混合建议</p>
+                  <h3 data-i18n="operator_notes">操作提示</h3>
+                </div>
+                <div id="hybrid-output" class="note-list"></div>
+              </div>
+            </div>
+
+            <div class="result-block export-panel">
+              <div class="block-heading">
+                <p class="eyebrow" data-i18n="export">导出</p>
+                <h3 data-i18n="playback_ready_text">可直接使用的文本</h3>
+              </div>
+              <div class="control-group">
+                <label for="export-format" data-i18n="export_format">导出格式</label>
+                <select id="export-format">
+                  <option value="generic-parametric" data-i18n="export_generic_parametric">通用参数 EQ 文本</option>
+                  <option value="equalizer-apo" data-i18n="export_equalizer_apo">Equalizer APO 文本</option>
+                  <option value="graphic-summary" data-i18n="export_graphic_summary">10 段摘要</option>
+                  <option value="session-json" data-i18n="export_session_json">会话 JSON</option>
+                </select>
+              </div>
+              <textarea id="export-output" class="text-output" readonly></textarea>
+              <div class="action-grid two-up">
+                <button id="copy-parametric" class="secondary-action" data-i18n="copy_current_format">复制当前格式</button>
+                <button id="copy-export-json" class="secondary-action" data-i18n="copy_export_json">复制导出 JSON</button>
+              </div>
+              <p id="export-status" class="hint" data-i18n="export_status_default">如无明确目标平台，优先使用通用参数 EQ 文本。</p>
+            </div>
+
+            <div class="result-block preview-panel">
+              <div class="block-heading">
+                <p class="eyebrow" data-i18n="preview">试听</p>
+                <h3 data-i18n="browser_listening_check">浏览器内试听</h3>
+              </div>
+              <div class="preview-controls">
+                <div class="control-group">
+                  <label for="audio-upload" data-i18n="audio_file">音频文件</label>
+                  <input id="audio-upload" type="file" accept="audio/*" />
+                  <p class="hint" data-i18n="preview_hint">通过 Web Audio 在本地运行。</p>
+                </div>
+                <div class="preview-actions">
+                  <div class="control-group demo-picker">
+                    <label for="demo-audio-select" data-i18n="demo_audio">演示音频</label>
+                    <select id="demo-audio-select"></select>
+                  </div>
+                  <button id="load-demo-audio" class="secondary-action preview-toggle" data-i18n="load_demo_audio">加载演示音频</button>
+                  <div class="preview-mode-toggle" role="group" aria-label="Preview mode">
+                    <button id="preview-original" class="secondary-action active" disabled data-i18n="preview_original">原始</button>
+                    <button id="preview-eq" class="secondary-action" disabled data-i18n="preview_eq">EQ</button>
+                  </div>
+                </div>
+              </div>
+              <audio id="preview-audio" controls preload="metadata"></audio>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
