@@ -16,8 +16,8 @@ const MEASUREMENT_SETTINGS = {
   tailSeconds: 0.35
 };
 const DEMO_AUDIO_FILES = [
-  { value: "demo #1.flac", label: "Demo #1" },
-  { value: "demo #2.flac", label: "Demo #2" }
+  { value: "demo #1.mp3", label: "Demo #1" },
+  { value: "demo #2.mp3", label: "Demo #2" }
 ];
 const PARAMETRIC_LAYOUT = [
   {
