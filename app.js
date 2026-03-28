@@ -1,5 +1,24 @@
-const GRAPHIC_BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+const GRAPHIC_EQ_PRESETS = {
+  "classic-10": {
+    bands: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    gainStep: 0.5
+  },
+  "car-16": {
+    bands: [31, 46, 63, 125, 230, 400, 630, 810, 1000, 2000, 4000, 6000, 8000, 12000, 14000, 16000],
+    gainStep: 1
+  },
+  custom: {
+    bands: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    gainStep: 0.5
+  }
+};
+const DEFAULT_GRAPHIC_PRESET = "classic-10";
 const DRAW_FREQS = [20, 25, 31, 40, 50, 62, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000];
+const MEASUREMENT_SWEEP_PRESETS = {
+  standard: { subdivisions: 0 },
+  fine: { subdivisions: 1 },
+  detailed: { subdivisions: 2 }
+};
 const SAMPLE_RATE = 48000;
 const DEFAULT_CURVE_SOURCE = "measurement";
 const FIT_FREQS = createLogFrequencyGrid(20, 20000, 72);
@@ -19,6 +38,36 @@ const DEMO_AUDIO_FILES = [
   { value: "demo #1.mp3", label: "Demo #1" },
   { value: "demo #2.mp3", label: "Demo #2" }
 ];
+const CAR_TARGET_LIBRARY = {
+  reference: {
+    points: [[20, -7.5], [31, -3.4], [40, -1.1], [62, 0.9], [80, 1.6], [125, 1.2], [250, 0.4], [500, 0.1], [1000, 0], [2000, -0.6], [4000, -1.5], [8000, -2.6], [16000, -4.8], [20000, -6]],
+    noteKey: "target_note_reference"
+  },
+  warm: {
+    points: [[20, -7.2], [31, -2.8], [40, -0.3], [62, 1.6], [80, 2.3], [125, 1.8], [250, 0.9], [500, 0.2], [1000, -0.2], [2000, -1], [4000, -2.2], [8000, -3.4], [16000, -5.6], [20000, -7]],
+    noteKey: "target_note_warm"
+  },
+  clarity: {
+    points: [[20, -8], [31, -3.7], [40, -1.4], [62, 0.3], [80, 1.1], [125, 0.8], [250, 0.2], [500, 0.1], [1000, 0], [2000, 0], [4000, 0.5], [8000, -0.4], [16000, -2.3], [20000, -3.9]],
+    noteKey: "target_note_clarity"
+  },
+  highway: {
+    points: [[20, -6.5], [31, -2.4], [40, 0.1], [62, 1.5], [80, 2], [125, 1.4], [250, 0.7], [500, 0.2], [1000, 0.1], [2000, 0.6], [4000, 0.2], [8000, -0.8], [16000, -2.8], [20000, -4.4]],
+    noteKey: "target_note_highway"
+  },
+  harman: {
+    points: [[20, -5.8], [31, -1.9], [40, 0.4], [62, 2], [80, 2.4], [125, 1.8], [250, 0.8], [500, 0.3], [1000, 0], [2000, -0.5], [4000, -1.2], [8000, -2.3], [16000, -4.3], [20000, -5.5]],
+    noteKey: "target_note_harman"
+  },
+  "bk-house": {
+    points: [[20, -5.2], [31, -1.4], [40, 0.9], [62, 2.2], [80, 2.5], [125, 1.7], [250, 0.6], [500, 0.2], [1000, 0], [2000, -0.8], [4000, -1.8], [8000, -3.1], [16000, -5], [20000, -6.2]],
+    noteKey: "target_note_bk_house"
+  },
+  "studio-neutral": {
+    points: [[20, -8.5], [31, -4.2], [40, -2], [62, -0.4], [80, 0.3], [125, 0.5], [250, 0.3], [500, 0.1], [1000, 0], [2000, -0.1], [4000, -0.4], [8000, -1.1], [16000, -2.9], [20000, -4.2]],
+    noteKey: "target_note_studio_neutral"
+  }
+};
 const PARAMETRIC_LAYOUT = [
   {
     labelKey: "filter_low_shelf",
@@ -79,6 +128,11 @@ const I18N = {
     measure: "测量",
     live_stepped_sweep: "实时分段扫频",
     measurement_hint: "将设备麦克风放在听音位置。应用会播放分段扫频，并提取一条相对响应曲线。",
+    measurement_resolution: "扫频精度",
+    measurement_resolution_standard: "标准 31 点",
+    measurement_resolution_fine: "精细 61 点",
+    measurement_resolution_detailed: "细致 91 点",
+    measurement_passes: "重复次数",
     run_measurement: "开始测量",
     download_curve: "下载曲线",
     use_measurement: "使用测量结果",
@@ -91,6 +145,17 @@ const I18N = {
     style_warm: "偏暖",
     style_clarity: "清晰",
     style_highway: "高速",
+    style_harman: "Harman",
+    style_bk_house: "B&K House",
+    style_studio_neutral: "Studio Neutral",
+    target_style_note_default: "带明确名称的曲线在这里作为实用近似，不代表原始厂商或论文的精确官方目标。",
+    target_note_reference: "实用车载平衡基线，适合作为大多数车厢和回放链路的起点。",
+    target_note_warm: "在参考曲线基础上增加中低频厚度，并适度压低上端锐感。",
+    target_note_clarity: "收敛低频隆起，抬一点 2 到 4 kHz，偏向人声和细节清晰。",
+    target_note_highway: "面向路噪环境，补一点低频重量和存在感区域。",
+    target_note_harman: "基于常见 Harman 房间内偏好走向做的实用近似：低频有搁架、整体向高频缓慢下倾。",
+    target_note_bk_house: "基于常见 B&K house curve 口径做的实用近似：低频略抬、高频更顺滑地下倾。",
+    target_note_studio_neutral: "偏近场监听取向的保守基线，低频更克制，高频滚降也更轻。",
     vehicle_class: "车辆类型",
     vehicle_sedan: "轿车",
     vehicle_suv: "SUV",
@@ -120,11 +185,22 @@ const I18N = {
     output_and_limits: "输出与限制",
     output_eq: "输出 EQ",
     output_all: "全部输出",
+    output_graphic: "图示 EQ",
     output_graphic10: "10 段图示 EQ",
     output_parametric: "参数 EQ",
     output_hybrid: "混合摘要",
     max_correction: "最大修正",
     clamp_at: "限制在",
+    graphic_eq_preset: "图示 EQ 预设",
+    graphic_preset_classic10: "经典 10 段",
+    graphic_preset_car16: "车机 16 段",
+    graphic_preset_custom: "自定义",
+    graphic_gain_step: "增益步进",
+    graphic_bands: "图示 EQ 频段",
+    graphic_bands_placeholder: "例如 31, 46, 63, 125, 230, 400, 630, 810, 1k, 2k, 4k, 6k, 8k, 12k, 14k, 16k",
+    graphic_config_ready: "{count} 个频段，按 {step} dB 步进取整。",
+    graphic_custom_invalid: "自定义频段至少需要 4 个有效频点，可用逗号分隔并支持 1k / 12k 写法。",
+    graphic_band_count: "{count} 段 EQ",
     generate_eq: "生成 EQ",
     broad_corrections_hint: "优先做宽带修正。窄陷波会被刻意弱化处理。",
     presets: "预设",
@@ -175,6 +251,7 @@ const I18N = {
     export_generic_parametric: "通用参数 EQ 文本",
     export_equalizer_apo: "Equalizer APO 文本",
     export_graphic_summary: "10 段摘要",
+    export_graphic_summary_dynamic: "{count} 段摘要",
     export_session_json: "会话 JSON",
     copy_current_format: "复制当前格式",
     copy_export_json: "复制导出 JSON",
@@ -198,14 +275,15 @@ const I18N = {
     hybrid_low_mid: "低中频轮廓大约在 350 Hz：{value}。这里建议保守，避免把车厢或播放器调得发闷发鼻。",
     hybrid_presence: "存在感区域大约在 3 kHz：{value}。通常这里决定人声清晰度和军鼓攻击感能否回来。",
     hybrid_air: "高频搁架大约在 9 kHz：{value}。如果手机麦高频不稳定，这项可以视情况减弱。",
-    measurement_summary_empty: "31 点扫频，锚定 1 kHz。",
-    measurement_summary_ready: "{count} 个频点已就绪。低频 {bass}，高频 {treble}。",
+    measurement_summary_empty: "{count} 点扫频，{passes} 次平均，锚定 1 kHz。",
+    measurement_summary_ready: "{count} 个频点已就绪，来自 {passes} 次扫描。低频 {bass}，高频 {treble}。",
     measurement_no_api: "当前浏览器不支持麦克风采集接口。",
     measurement_no_audio_context: "当前浏览器不支持 Web Audio 输出接口。",
     measurement_requesting: "正在请求麦克风权限...",
-    measurement_running: "正在执行分段扫频，预计 {seconds} 秒...",
+    measurement_running: "正在执行第 {pass}/{passes} 次分段扫频，预计 {seconds} 秒...",
     measurement_sync_failed: "测量结束，但没有可靠地解析出同步脉冲。",
-    measurement_captured: "测量完成，已提取 {count} 个频点并应用。",
+    measurement_captured: "测量完成，已提取 {count} 个频点，并对 {passes} 次扫描求平均。",
+    measurement_captured_partial: "测量完成，已提取 {count} 个频点；原计划 {requested} 次扫描，成功 {passes} 次。",
     measurement_failed: "测量失败：{message}",
     measurement_run_first: "请先执行一次实时测量。",
     measurement_selected: "已选中测量输入源。运行实时分段扫频后会写入数据。",
@@ -254,6 +332,11 @@ const I18N = {
     measure: "Measure",
     live_stepped_sweep: "Live stepped sweep",
     measurement_hint: "Use the device microphone at the listening position. The app plays a stepped sweep and captures a relative response curve.",
+    measurement_resolution: "Sweep detail",
+    measurement_resolution_standard: "Standard 31-point",
+    measurement_resolution_fine: "Fine 61-point",
+    measurement_resolution_detailed: "Detailed 91-point",
+    measurement_passes: "Passes",
     run_measurement: "Run measurement",
     download_curve: "Download curve",
     use_measurement: "Use measurement",
@@ -266,6 +349,17 @@ const I18N = {
     style_warm: "Warm",
     style_clarity: "Clarity",
     style_highway: "Highway",
+    style_harman: "Harman",
+    style_bk_house: "B&K House",
+    style_studio_neutral: "Studio Neutral",
+    target_style_note_default: "Named curves here are practical approximations, not exact official vendor or paper targets.",
+    target_note_reference: "Practical in-car baseline for most cabins and speaker chains.",
+    target_note_warm: "Adds low-mid body to the baseline and trims some upper-edge sharpness.",
+    target_note_clarity: "Tighter bass rise with a mild 2 to 4 kHz lift for speech and detail.",
+    target_note_highway: "Shaped for road-noise masking with a bit more bass weight and presence.",
+    target_note_harman: "Practical approximation of the commonly cited Harman in-room preference trend: bass shelf with a gradual downward treble tilt.",
+    target_note_bk_house: "Practical approximation of the commonly cited B&K house-curve approach: modest bass rise and a smoother downward treble slope.",
+    target_note_studio_neutral: "Conservative nearfield-monitor style baseline with restrained bass and lighter top-end rolloff.",
     vehicle_class: "Vehicle class",
     vehicle_sedan: "Sedan",
     vehicle_suv: "SUV",
@@ -295,11 +389,22 @@ const I18N = {
     output_and_limits: "Output and limits",
     output_eq: "Output EQ",
     output_all: "All outputs",
+    output_graphic: "Graphic EQ",
     output_graphic10: "10-band graphic EQ",
     output_parametric: "Parametric EQ",
     output_hybrid: "Hybrid summary",
     max_correction: "Max correction",
     clamp_at: "Clamp at",
+    graphic_eq_preset: "Graphic EQ preset",
+    graphic_preset_classic10: "Classic 10-band",
+    graphic_preset_car16: "Car 16-band",
+    graphic_preset_custom: "Custom",
+    graphic_gain_step: "Gain step",
+    graphic_bands: "Graphic EQ bands",
+    graphic_bands_placeholder: "For example 31, 46, 63, 125, 230, 400, 630, 810, 1k, 2k, 4k, 6k, 8k, 12k, 14k, 16k",
+    graphic_config_ready: "{count} bands, quantized to {step} dB steps.",
+    graphic_custom_invalid: "Enter at least 4 valid custom bands. Comma-separated values and 1k / 12k notation are supported.",
+    graphic_band_count: "{count}-band EQ",
     generate_eq: "Generate EQ",
     broad_corrections_hint: "Broad corrections first. Narrow notches are intentionally de-emphasized.",
     presets: "Presets",
@@ -350,6 +455,7 @@ const I18N = {
     export_generic_parametric: "Generic parametric text",
     export_equalizer_apo: "Equalizer APO text",
     export_graphic_summary: "10-band summary",
+    export_graphic_summary_dynamic: "{count}-band summary",
     export_session_json: "Session JSON",
     copy_current_format: "Copy current format",
     copy_export_json: "Copy export JSON",
@@ -373,14 +479,15 @@ const I18N = {
     hybrid_low_mid: "Low-mid contour around 350 Hz: {value}. Keep this subtle to avoid a boxy cabin or nasal player match.",
     hybrid_presence: "Presence zone around 3 kHz: {value}. This is where speech clarity and snare attack usually recover.",
     hybrid_air: "High shelf around 9 kHz: {value}. Treat this as optional when phone-mic measurements are noisy.",
-    measurement_summary_empty: "31-point sweep, anchored at 1 kHz.",
-    measurement_summary_ready: "{count}-point curve ready. Bass {bass}, treble {treble}.",
+    measurement_summary_empty: "{count}-point sweep, {passes} passes averaged, anchored at 1 kHz.",
+    measurement_summary_ready: "{count}-point curve ready from {passes} passes. Bass {bass}, treble {treble}.",
     measurement_no_api: "This browser does not expose microphone capture APIs.",
     measurement_no_audio_context: "This browser does not expose Web Audio output APIs.",
     measurement_requesting: "Requesting microphone access...",
-    measurement_running: "Running stepped sweep for {seconds} seconds...",
+    measurement_running: "Running sweep pass {pass}/{passes}, about {seconds} seconds...",
     measurement_sync_failed: "Measurement finished, but the sync pulse could not be resolved cleanly.",
-    measurement_captured: "Measurement captured and applied from {count} frequency points.",
+    measurement_captured: "Measurement captured from {count} points and averaged across {passes} passes.",
+    measurement_captured_partial: "Measurement captured from {count} points; requested {requested} passes, succeeded on {passes}.",
     measurement_failed: "Measurement failed: {message}",
     measurement_run_first: "Run a measurement first.",
     measurement_selected: "Measurement source selected. Run the live stepped sweep to populate it.",
@@ -426,6 +533,8 @@ const el = {
   curveUpload: document.querySelector("#curve-upload"),
   uploadWrap: document.querySelector("#upload-wrap"),
   startMeasurement: document.querySelector("#start-measurement"),
+  measurementResolution: document.querySelector("#measurement-resolution"),
+  measurementPasses: document.querySelector("#measurement-passes"),
   downloadMeasurement: document.querySelector("#download-measurement"),
   useMeasurement: document.querySelector("#use-measurement"),
   clearMeasurement: document.querySelector("#clear-measurement"),
@@ -433,6 +542,7 @@ const el = {
   measurementSummary: document.querySelector("#measurement-summary"),
   languageSelect: document.querySelector("#language-select"),
   carStyle: document.querySelector("#car-style"),
+  targetStyleNote: document.querySelector("#target-style-note"),
   vehicleClass: document.querySelector("#vehicle-class"),
   seatFocus: document.querySelector("#seat-focus"),
   noiseLevel: document.querySelector("#noise-level"),
@@ -442,6 +552,11 @@ const el = {
   playerB: document.querySelector("#player-b"),
   matchFocus: document.querySelector("#match-focus"),
   eqTopology: document.querySelector("#eq-topology"),
+  graphicPreset: document.querySelector("#graphic-preset"),
+  graphicBands: document.querySelector("#graphic-bands"),
+  graphicBandsWrap: document.querySelector("#graphic-bands-wrap"),
+  graphicGainStep: document.querySelector("#graphic-gain-step"),
+  graphicConfigStatus: document.querySelector("#graphic-config-status"),
   maxBoost: document.querySelector("#max-boost"),
   maxBoostReadout: document.querySelector("#max-boost-readout"),
   fitButton: document.querySelector("#fit-button"),
@@ -462,9 +577,11 @@ const el = {
   copyParametric: document.querySelector("#copy-parametric"),
   copyExportJson: document.querySelector("#copy-export-json"),
   exportFormat: document.querySelector("#export-format"),
+  graphicSummaryOption: document.querySelector("#graphic-summary-option"),
   exportOutput: document.querySelector("#export-output"),
   exportStatus: document.querySelector("#export-status"),
   graphicSection: document.querySelector("#graphic-section"),
+  graphicEyebrow: document.querySelector("#graphic-eyebrow"),
   parametricSection: document.querySelector("#parametric-section"),
   hybridSection: document.querySelector("#hybrid-section"),
   graphicOutput: document.querySelector("#graphic-output"),
@@ -491,7 +608,12 @@ const state = {
   mode: "car",
   uploadedCurve: null,
   measuredCurve: null,
-  graphicGains: Array(GRAPHIC_BANDS.length).fill(0),
+  graphicEq: {
+    preset: DEFAULT_GRAPHIC_PRESET,
+    bands: [...GRAPHIC_EQ_PRESETS[DEFAULT_GRAPHIC_PRESET].bands],
+    gainStep: GRAPHIC_EQ_PRESETS[DEFAULT_GRAPHIC_PRESET].gainStep
+  },
+  graphicGains: Array(GRAPHIC_EQ_PRESETS[DEFAULT_GRAPHIC_PRESET].bands.length).fill(0),
   parametricFilters: [],
   presets: [],
   audioContext: null,
@@ -503,7 +625,13 @@ const state = {
   previewMode: "original",
   audioObjectUrl: null,
   measurementRunning: false,
-  measurementPlan: null
+  measurementPlan: null,
+  measurementMeta: {
+    resolution: "standard",
+    passesRequested: 1,
+    passesSucceeded: 0,
+    frequencyCount: DRAW_FREQS.length
+  }
 };
 
 function curveFrom(points) {
@@ -542,9 +670,116 @@ function createGainSteps(limit = 6, step = 0.5) {
   return values;
 }
 
-function formatSigned(value) {
-  const rounded = round(value);
-  return `${rounded >= 0 ? "+" : ""}${rounded.toFixed(1)} dB`;
+function countStepDigits(step) {
+  const normalized = String(step).replace(/0+$/, "");
+  const dotIndex = normalized.indexOf(".");
+  return dotIndex === -1 ? 0 : normalized.length - dotIndex - 1;
+}
+
+function parseFrequencyToken(token) {
+  const normalized = String(token).trim().toLowerCase().replace(/hz$/i, "");
+  if (!normalized) return null;
+  const match = normalized.match(/^(\d+(?:\.\d+)?)(k)?$/);
+  if (!match) return null;
+  const value = Number(match[1]) * (match[2] ? 1000 : 1);
+  return Number.isFinite(value) ? Math.round(value) : null;
+}
+
+function normalizeGraphicBands(bands) {
+  return [...new Set(bands.filter((band) => Number.isFinite(band) && band >= 20 && band <= 20000))]
+    .sort((left, right) => left - right);
+}
+
+function parseGraphicBandsInput(value) {
+  return normalizeGraphicBands(
+    String(value)
+      .split(/[\s,;]+/)
+      .map(parseFrequencyToken)
+      .filter(Boolean)
+  );
+}
+
+function formatGraphicBandsInput(bands) {
+  return bands
+    .map((band) => (band >= 1000 && band % 1000 === 0 ? `${band / 1000}k` : String(band)))
+    .join(", ");
+}
+
+function createSubdividedFrequencies(baseFrequencies, subdivisions) {
+  if (!subdivisions) return [...baseFrequencies];
+  const result = [];
+  for (let index = 0; index < baseFrequencies.length - 1; index += 1) {
+    const left = baseFrequencies[index];
+    const right = baseFrequencies[index + 1];
+    result.push(left);
+    for (let step = 1; step <= subdivisions; step += 1) {
+      const ratio = step / (subdivisions + 1);
+      result.push(round(10 ** (Math.log10(left) + (Math.log10(right) - Math.log10(left)) * ratio), 2));
+    }
+  }
+  result.push(baseFrequencies[baseFrequencies.length - 1]);
+  return [...new Set(result)].sort((left, right) => left - right);
+}
+
+function getMeasurementSweepFrequencies() {
+  const resolution = MEASUREMENT_SWEEP_PRESETS[el.measurementResolution.value]
+    ? el.measurementResolution.value
+    : "standard";
+  return createSubdividedFrequencies(DRAW_FREQS, MEASUREMENT_SWEEP_PRESETS[resolution].subdivisions);
+}
+
+function getMeasurementConfig() {
+  const resolution = MEASUREMENT_SWEEP_PRESETS[el.measurementResolution.value]
+    ? el.measurementResolution.value
+    : "standard";
+  const passes = clamp(Math.round(Number(el.measurementPasses.value) || 1), 1, 3);
+  const frequencies = getMeasurementSweepFrequencies();
+  return {
+    resolution,
+    passes,
+    frequencies
+  };
+}
+
+function averageMeasurementCurves(curves) {
+  if (!curves.length) return null;
+  const frequencies = curves[0].map((point) => point.freq);
+  return frequencies.map((freq, index) => ({
+    freq,
+    db: round(curves.reduce((sum, curve) => sum + (curve[index]?.db ?? 0), 0) / curves.length, 2)
+  }));
+}
+
+function quantizeToStep(value, step) {
+  const safeStep = Math.max(Number(step) || 0.5, 0.1);
+  const digits = countStepDigits(safeStep);
+  return round(Math.round(value / safeStep) * safeStep, digits);
+}
+
+function getGraphicEqConfig() {
+  const preset = GRAPHIC_EQ_PRESETS[el.graphicPreset.value] ? el.graphicPreset.value : DEFAULT_GRAPHIC_PRESET;
+  const presetConfig = GRAPHIC_EQ_PRESETS[preset];
+  const gainStep = Math.max(Number(el.graphicGainStep.value) || presetConfig.gainStep || 0.5, 0.1);
+  const customBands = parseGraphicBandsInput(el.graphicBands.value);
+  const bands = preset === "custom" ? customBands : presetConfig.bands;
+  const fallbackBands = presetConfig.bands;
+  const valid = preset !== "custom" || customBands.length >= 4;
+  return {
+    preset,
+    gainStep,
+    bands: valid ? bands : fallbackBands,
+    isValid: valid
+  };
+}
+
+function describeGainStep(step) {
+  const digits = Math.max(0, countStepDigits(step));
+  return Number(step).toFixed(digits);
+}
+
+function formatSigned(value, digits = 1) {
+  const rounded = round(value, digits);
+  return `${rounded >= 0 ? "+" : ""}${rounded.toFixed(digits)} dB`;
 }
 
 function interpolateCurve(curve, freq) {
@@ -614,6 +849,8 @@ function applyI18n() {
     el.loadDemoAudio.textContent = t("load_demo_audio");
   }
   populateDemoAudioSelect(el.demoAudioSelect?.value);
+  updateCarTargetNote();
+  updateGraphicEqUi();
 }
 
 function populateDemoAudioSelect(selectedValue = "") {
@@ -629,19 +866,48 @@ function populateDemoAudioSelect(selectedValue = "") {
   });
 }
 
+function updateCarTargetNote() {
+  if (!el.targetStyleNote) return;
+  const style = CAR_TARGET_LIBRARY[el.carStyle.value] ? el.carStyle.value : "reference";
+  const noteKey = CAR_TARGET_LIBRARY[style]?.noteKey ?? "target_style_note_default";
+  el.targetStyleNote.textContent = t(noteKey);
+}
+
+function updateGraphicEqUi() {
+  const config = getGraphicEqConfig();
+  state.graphicEq = {
+    preset: config.preset,
+    bands: [...config.bands],
+    gainStep: config.gainStep
+  };
+
+  el.graphicBandsWrap?.classList.toggle("hidden", config.preset !== "custom");
+
+  if (el.graphicEyebrow) {
+    el.graphicEyebrow.textContent = t("graphic_band_count", { count: config.bands.length });
+  }
+
+  if (el.graphicSummaryOption) {
+    el.graphicSummaryOption.textContent = t("export_graphic_summary_dynamic", { count: config.bands.length });
+  }
+
+  if (el.graphicConfigStatus) {
+    el.graphicConfigStatus.textContent = config.isValid
+      ? t("graphic_config_ready", {
+          count: config.bands.length,
+          step: describeGainStep(config.gainStep)
+        })
+      : t("graphic_custom_invalid");
+  }
+}
+
 function buildCarTarget() {
   const style = el.carStyle.value;
   const vehicleClass = el.vehicleClass.value;
   const seatFocus = el.seatFocus.value;
   const noiseLevel = el.noiseLevel.value;
   const airiness = Number(el.airiness.value);
-
-  const baseCurve = {
-    reference: curveFrom([[20, -7.5], [31, -3.4], [40, -1.1], [62, 0.9], [80, 1.6], [125, 1.2], [250, 0.4], [500, 0.1], [1000, 0], [2000, -0.6], [4000, -1.5], [8000, -2.6], [16000, -4.8], [20000, -6]]),
-    warm: curveFrom([[20, -7.2], [31, -2.8], [40, -0.3], [62, 1.6], [80, 2.3], [125, 1.8], [250, 0.9], [500, 0.2], [1000, -0.2], [2000, -1], [4000, -2.2], [8000, -3.4], [16000, -5.6], [20000, -7]]),
-    clarity: curveFrom([[20, -8], [31, -3.7], [40, -1.4], [62, 0.3], [80, 1.1], [125, 0.8], [250, 0.2], [500, 0.1], [1000, 0], [2000, 0], [4000, 0.5], [8000, -0.4], [16000, -2.3], [20000, -3.9]]),
-    highway: curveFrom([[20, -6.5], [31, -2.4], [40, 0.1], [62, 1.5], [80, 2], [125, 1.4], [250, 0.7], [500, 0.2], [1000, 0.1], [2000, 0.6], [4000, 0.2], [8000, -0.8], [16000, -2.8], [20000, -4.4]])
-  }[style];
+  const baseCurve = curveFrom((CAR_TARGET_LIBRARY[style] ?? CAR_TARGET_LIBRARY.reference).points);
 
   return DRAW_FREQS.map((freq) => {
     let db = interpolateCurve(baseCurve, freq);
@@ -731,25 +997,40 @@ function smoothCurve(curve, width = 1.2) {
   });
 }
 
-function computeBandGains(measuredCurve, targetCurve, maxBoost) {
-  return GRAPHIC_BANDS.map((band) => {
+function computeBandGains(measuredCurve, targetCurve, maxBoost, bands, gainStep) {
+  const digits = countStepDigits(gainStep);
+  return bands.map((band) => {
     const measured = averageWeighted(measuredCurve, band, 0.18);
     const target = averageWeighted(targetCurve, band, 0.18);
-    return Math.round(clamp(target - measured, -maxBoost, maxBoost) * 10) / 10;
+    return round(quantizeToStep(clamp(target - measured, -maxBoost, maxBoost), gainStep), digits);
   });
 }
 
-function buildHybridNotes(bandGains) {
-  const bassLift = averageOfIndices(bandGains, [0, 1, 2]);
-  const lowMid = averageOfIndices(bandGains, [3, 4]);
-  const presence = averageOfIndices(bandGains, [6, 7]);
-  const air = averageOfIndices(bandGains, [8, 9]);
+function averageBandRange(bands, gains, minFreq, maxFreq) {
+  const values = bands
+    .map((band, index) => ({ band, gain: gains[index] }))
+    .filter(({ band }) => band >= minFreq && band <= maxFreq)
+    .map(({ gain }) => gain);
+
+  if (!values.length) {
+    return averageOfIndices(gains, gains.map((_, index) => index));
+  }
+
+  return round(values.reduce((sum, value) => sum + value, 0) / values.length, 2);
+}
+
+function buildHybridNotes(bands, bandGains) {
+  const digits = countStepDigits(state.graphicEq.gainStep);
+  const bassLift = averageBandRange(bands, bandGains, 20, 125);
+  const lowMid = averageBandRange(bands, bandGains, 180, 630);
+  const presence = averageBandRange(bands, bandGains, 1000, 4000);
+  const air = averageBandRange(bands, bandGains, 6000, 16000);
 
   return [
-    t("hybrid_low_shelf", { value: formatSigned(bassLift) }),
-    t("hybrid_low_mid", { value: formatSigned(lowMid) }),
-    t("hybrid_presence", { value: formatSigned(presence) }),
-    t("hybrid_air", { value: formatSigned(air) })
+    t("hybrid_low_shelf", { value: formatSigned(bassLift, digits) }),
+    t("hybrid_low_mid", { value: formatSigned(lowMid, digits) }),
+    t("hybrid_presence", { value: formatSigned(presence, digits) }),
+    t("hybrid_air", { value: formatSigned(air, digits) })
   ];
 }
 
@@ -927,7 +1208,7 @@ function normalizeBiquad(coeffs) {
   };
 }
 
-function createMeasurementPlan(sampleRate = SAMPLE_RATE) {
+function createMeasurementPlan(sampleRate = SAMPLE_RATE, frequencies = DRAW_FREQS) {
   const {
     amplitude,
     leadInSeconds,
@@ -950,7 +1231,7 @@ function createMeasurementPlan(sampleRate = SAMPLE_RATE) {
     leadInSamples +
     syncDurationSamples +
     syncGapSamples +
-    DRAW_FREQS.length * (toneDurationSamples + gapDurationSamples) +
+    frequencies.length * (toneDurationSamples + gapDurationSamples) +
     tailSamples;
   const data = new Float32Array(totalSamples);
 
@@ -967,7 +1248,7 @@ function createMeasurementPlan(sampleRate = SAMPLE_RATE) {
   writeTone(syncStartSample, syncDurationSamples, syncFrequency, amplitude * 1.25);
 
   const measurementStartSample = syncStartSample + syncDurationSamples + syncGapSamples;
-  const segments = DRAW_FREQS.map((frequency, index) => {
+  const segments = frequencies.map((frequency, index) => {
     const toneStartSample = measurementStartSample + index * (toneDurationSamples + gapDurationSamples);
     writeTone(toneStartSample, toneDurationSamples, frequency, amplitude);
     const analysisStartOffset = Math.round(toneDurationSamples * 0.22);
@@ -1000,7 +1281,8 @@ function createMeasurementPlan(sampleRate = SAMPLE_RATE) {
     gapDurationSamples,
     totalSamples,
     durationSeconds: totalSamples / sampleRate,
-    segments
+    segments,
+    frequencyCount: frequencies.length
   };
 }
 
@@ -1097,13 +1379,19 @@ function analyzeMeasurementRecording(recording, plan) {
 }
 
 function updateMeasurementUi() {
+  const measurementConfig = getMeasurementConfig();
+  const summaryCount = state.measuredCurve?.length || measurementConfig.frequencies.length;
+  const summaryPasses = state.measurementMeta?.passesSucceeded || measurementConfig.passes;
   const hasMeasurement = Boolean(state.measuredCurve?.length);
   el.useMeasurement.disabled = !hasMeasurement;
   el.downloadMeasurement.disabled = !hasMeasurement;
   el.clearMeasurement.disabled = !hasMeasurement;
   el.startMeasurement.disabled = state.measurementRunning;
   if (!hasMeasurement) {
-    el.measurementSummary.textContent = t("measurement_summary_empty");
+    el.measurementSummary.textContent = t("measurement_summary_empty", {
+      count: summaryCount,
+      passes: summaryPasses
+    });
     return;
   }
 
@@ -1111,6 +1399,7 @@ function updateMeasurementUi() {
   const high = averageRange(state.measuredCurve, 2500, 10000);
   el.measurementSummary.textContent = t("measurement_summary_ready", {
     count: state.measuredCurve.length,
+    passes: summaryPasses,
     bass: formatSigned(low),
     treble: formatSigned(high)
   });
@@ -1152,9 +1441,17 @@ async function runLiveMeasurement() {
 
     context = new AudioContextClass({ sampleRate: SAMPLE_RATE });
     if (context.state === "suspended") await context.resume();
-    const plan = createMeasurementPlan(context.sampleRate);
+    const measurementConfig = getMeasurementConfig();
+    const plan = createMeasurementPlan(context.sampleRate, measurementConfig.frequencies);
     state.measurementPlan = plan;
-    const chunks = [];
+    state.measurementMeta = {
+      resolution: measurementConfig.resolution,
+      passesRequested: measurementConfig.passes,
+      passesSucceeded: 0,
+      frequencyCount: plan.frequencyCount
+    };
+    const successfulCurves = [];
+    let activeChunks = [];
 
     sourceNode = context.createMediaStreamSource(stream);
     processorNode = context.createScriptProcessor(4096, 1, 1);
@@ -1162,38 +1459,71 @@ async function runLiveMeasurement() {
     monitorGain.gain.value = 0;
     processorNode.onaudioprocess = (event) => {
       if (!state.measurementRunning) return;
-      chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      activeChunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
     };
     sourceNode.connect(processorNode);
     processorNode.connect(monitorGain);
     monitorGain.connect(context.destination);
 
-    const buffer = context.createBuffer(1, plan.data.length, context.sampleRate);
-    buffer.copyToChannel(plan.data, 0);
-    playbackNode = context.createBufferSource();
-    playbackNode.buffer = buffer;
-    playbackNode.connect(context.destination);
+    for (let passIndex = 0; passIndex < measurementConfig.passes; passIndex += 1) {
+      activeChunks = [];
+      const buffer = context.createBuffer(1, plan.data.length, context.sampleRate);
+      buffer.copyToChannel(plan.data, 0);
+      playbackNode = context.createBufferSource();
+      playbackNode.buffer = buffer;
+      playbackNode.connect(context.destination);
 
-    setStatus(el.measurementStatus, t("measurement_running", { seconds: plan.durationSeconds.toFixed(1) }));
-    const ended = new Promise((resolve) => {
-      playbackNode.onended = resolve;
-    });
-    playbackNode.start(context.currentTime + 0.12);
-    await ended;
-    await new Promise((resolve) => window.setTimeout(resolve, 180));
+      setStatus(
+        el.measurementStatus,
+        t("measurement_running", {
+          pass: passIndex + 1,
+          passes: measurementConfig.passes,
+          seconds: plan.durationSeconds.toFixed(1)
+        })
+      );
 
-    const recording = flattenChunks(chunks);
-    const measuredCurve = analyzeMeasurementRecording(recording, plan);
+      const ended = new Promise((resolve) => {
+        playbackNode.onended = resolve;
+      });
+      playbackNode.start(context.currentTime + 0.12);
+      await ended;
+      playbackNode.disconnect();
+      playbackNode = null;
+      await new Promise((resolve) => window.setTimeout(resolve, 180));
 
-    if (!measuredCurve) {
+      const recording = flattenChunks(activeChunks);
+      const measuredCurve = analyzeMeasurementRecording(recording, plan);
+      if (measuredCurve) {
+        successfulCurves.push(measuredCurve);
+        state.measurementMeta.passesSucceeded = successfulCurves.length;
+      }
+
+      if (passIndex < measurementConfig.passes - 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 220));
+      }
+    }
+
+    if (!successfulCurves.length) {
       setStatus(el.measurementStatus, t("measurement_sync_failed"));
       return;
     }
 
-    state.measuredCurve = measuredCurve;
+    state.measuredCurve = averageMeasurementCurves(successfulCurves);
     el.curveSource.value = "measurement";
     fitEq();
-    setStatus(el.measurementStatus, t("measurement_captured", { count: measuredCurve.length }));
+    setStatus(
+      el.measurementStatus,
+      successfulCurves.length === measurementConfig.passes
+        ? t("measurement_captured", {
+            count: state.measuredCurve.length,
+            passes: successfulCurves.length
+          })
+        : t("measurement_captured_partial", {
+            count: state.measuredCurve.length,
+            requested: measurementConfig.passes,
+            passes: successfulCurves.length
+          })
+    );
   } catch (error) {
     setStatus(el.measurementStatus, t("measurement_failed", { message: error?.message ?? "unknown error" }));
   } finally {
@@ -1220,6 +1550,12 @@ function useMeasuredCurve() {
 
 function clearMeasuredCurve() {
   state.measuredCurve = null;
+  state.measurementMeta = {
+    resolution: getMeasurementConfig().resolution,
+    passesRequested: getMeasurementConfig().passes,
+    passesSucceeded: 0,
+    frequencyCount: getMeasurementConfig().frequencies.length
+  };
   if (el.curveSource.value === "measurement") {
     el.curveSource.value = state.uploadedCurve ? "upload" : DEFAULT_CURVE_SOURCE;
   }
@@ -1238,14 +1574,15 @@ function downloadMeasuredCurve() {
   setStatus(el.measurementStatus, t("measurement_downloaded"));
 }
 
-function renderGraphicOutput(bandGains) {
+function renderGraphicOutput(bands, bandGains) {
   el.graphicOutput.innerHTML = "";
+  const digits = countStepDigits(state.graphicEq.gainStep);
   bandGains.forEach((gain, index) => {
     const row = document.createElement("div");
     const band = document.createElement("span");
     const value = document.createElement("span");
-    band.textContent = `${GRAPHIC_BANDS[index]} Hz`;
-    value.textContent = formatSigned(gain);
+    band.textContent = `${bands[index]} Hz`;
+    value.textContent = formatSigned(gain, digits);
     value.className = gain >= 0 ? "boost" : "cut";
     row.append(band, value);
     el.graphicOutput.append(row);
@@ -1295,6 +1632,8 @@ function getCurrentConfig() {
     language: state.language,
     mode: state.mode,
     curveSource: el.curveSource.value,
+    measurementResolution: el.measurementResolution.value,
+    measurementPasses: el.measurementPasses.value,
     measuredCurve: state.measuredCurve
       ? state.measuredCurve.map((point) => [point.freq, round(point.db, 2)])
       : null,
@@ -1311,17 +1650,24 @@ function getCurrentConfig() {
     playerB: el.playerB.value,
     matchFocus: el.matchFocus.value,
     eqTopology: el.eqTopology.value,
+    graphicPreset: el.graphicPreset.value,
+    graphicBands: el.graphicBands.value,
+    graphicGainStep: el.graphicGainStep.value,
     maxBoost: el.maxBoost.value
   };
 }
 
 function buildExportPayload() {
   return {
-    version: 1,
+    version: 2,
     mode: state.mode,
     measuredSource: el.curveSource.value,
     output: {
-      graphicEq: GRAPHIC_BANDS.map((frequency, index) => ({ frequency, gain: state.graphicGains[index] })),
+      graphicEq: state.graphicEq.bands.map((frequency, index) => ({
+        frequency,
+        gain: state.graphicGains[index],
+        step: state.graphicEq.gainStep
+      })),
       parametricEq: state.parametricFilters
     },
     config: getCurrentConfig()
@@ -1329,7 +1675,10 @@ function buildExportPayload() {
 }
 
 function buildGraphicSummaryText() {
-  return GRAPHIC_BANDS.map((frequency, index) => `${frequency} Hz: ${formatSigned(state.graphicGains[index])}`).join("\n");
+  const digits = countStepDigits(state.graphicEq.gainStep);
+  return state.graphicEq.bands
+    .map((frequency, index) => `${frequency} Hz: ${formatSigned(state.graphicGains[index], digits)}`)
+    .join("\n");
 }
 
 function buildEqualizerApoText() {
@@ -1441,10 +1790,10 @@ function updateChartLegend() {
   el.chartCorrectedLabel.textContent = t("chart_corrected");
 }
 
-function computeCorrectedCurve(measuredCurve, bandGains) {
+function computeCorrectedCurve(measuredCurve, bands, bandGains) {
   return measuredCurve.map((point) => {
     const correction = averageWeighted(
-      GRAPHIC_BANDS.map((freq, index) => ({ freq, db: bandGains[index] })),
+      bands.map((freq, index) => ({ freq, db: bandGains[index] })),
       point.freq,
       0.16
     );
@@ -1493,6 +1842,8 @@ function applyConfig(config, options = {}) {
   state.language = config.language ?? state.language;
   state.mode = config.mode ?? state.mode;
   el.curveSource.value = config.curveSource ?? el.curveSource.value;
+  el.measurementResolution.value = config.measurementResolution ?? el.measurementResolution.value;
+  el.measurementPasses.value = config.measurementPasses ?? el.measurementPasses.value;
   if ("measuredCurve" in config) {
     state.measuredCurve = Array.isArray(config.measuredCurve)
       ? config.measuredCurve.map(([freq, db]) => ({ freq, db }))
@@ -1511,12 +1862,25 @@ function applyConfig(config, options = {}) {
   el.playerB.value = config.playerB ?? el.playerB.value;
   el.matchFocus.value = config.matchFocus ?? el.matchFocus.value;
   el.eqTopology.value = config.eqTopology ?? el.eqTopology.value;
+  el.graphicPreset.value = config.graphicPreset ?? el.graphicPreset.value;
+  el.graphicBands.value =
+    config.graphicBands ??
+    el.graphicBands.value ??
+    formatGraphicBandsInput(GRAPHIC_EQ_PRESETS.custom.bands);
+  el.graphicGainStep.value = config.graphicGainStep ?? el.graphicGainStep.value;
   el.maxBoost.value = config.maxBoost ?? el.maxBoost.value;
 
   el.airinessReadout.textContent = Number(el.airiness.value).toFixed(1);
   el.maxBoostReadout.textContent = Number(el.maxBoost.value).toFixed(1);
   el.uploadWrap.classList.toggle("hidden", el.curveSource.value !== "upload");
+  state.measurementMeta = {
+    resolution: getMeasurementConfig().resolution,
+    passesRequested: getMeasurementConfig().passes,
+    passesSucceeded: state.measuredCurve?.length ? getMeasurementConfig().passes : 0,
+    frequencyCount: state.measuredCurve?.length || getMeasurementConfig().frequencies.length
+  };
   applyI18n();
+  updateGraphicEqUi();
   updateMeasurementUi();
 
   el.modeButtons.forEach((button) => {
@@ -1783,9 +2147,17 @@ function mapShareStateFromUrl() {
 }
 
 function fitEq() {
+  updateGraphicEqUi();
+  const graphicConfig = state.graphicEq;
   const measuredCurve = smoothCurve(getMeasuredCurve());
   const targetCurve = smoothCurve(state.mode === "car" ? buildCarTarget() : buildPlayerTarget());
-  const bandGains = computeBandGains(measuredCurve, targetCurve, Number(el.maxBoost.value));
+  const bandGains = computeBandGains(
+    measuredCurve,
+    targetCurve,
+    Number(el.maxBoost.value),
+    graphicConfig.bands,
+    graphicConfig.gainStep
+  );
 
   state.graphicGains = bandGains;
   state.parametricFilters = buildParametricFilters(
@@ -1795,11 +2167,11 @@ function fitEq() {
   );
   const correctedCurve =
     el.eqTopology.value === "graphic10" || el.eqTopology.value === "hybrid"
-      ? computeCorrectedCurve(measuredCurve, bandGains)
+      ? computeCorrectedCurve(measuredCurve, graphicConfig.bands, bandGains)
       : computeCorrectedCurveFromFilters(measuredCurve, state.parametricFilters);
-  renderGraphicOutput(bandGains);
+  renderGraphicOutput(graphicConfig.bands, bandGains);
   renderParametricOutput(state.parametricFilters);
-  renderHybridNotes(buildHybridNotes(bandGains));
+  renderHybridNotes(buildHybridNotes(graphicConfig.bands, bandGains));
   renderExportOutput();
   drawChart(measuredCurve, targetCurve, correctedCurve);
   updateChartLegend();
@@ -1860,7 +2232,7 @@ function updatePreviewFilters() {
   const topology = el.eqTopology.value;
   const useGraphic = topology === "graphic10" || topology === "hybrid";
   const filters = useGraphic
-    ? GRAPHIC_BANDS.map((frequency, index) => ({
+    ? state.graphicEq.bands.map((frequency, index) => ({
         type: "PK",
         frequency,
         q: frequency < 100 ? 0.8 : frequency < 1000 ? 1.1 : 1.3,
@@ -1937,6 +2309,20 @@ function bindEvents() {
     if (file) parseUploadedCurve(file);
   });
 
+  [el.measurementResolution, el.measurementPasses].forEach((control) => {
+    control.addEventListener("change", () => {
+      state.measurementMeta = {
+        ...state.measurementMeta,
+        resolution: getMeasurementConfig().resolution,
+        passesRequested: getMeasurementConfig().passes,
+        passesSucceeded: state.measuredCurve?.length ? state.measurementMeta.passesSucceeded : 0,
+        frequencyCount: getMeasurementConfig().frequencies.length
+      };
+      updateMeasurementUi();
+      persistSession();
+    });
+  });
+
   el.startMeasurement.addEventListener("click", runLiveMeasurement);
   el.useMeasurement.addEventListener("click", useMeasuredCurve);
   el.clearMeasurement.addEventListener("click", clearMeasuredCurve);
@@ -1944,6 +2330,30 @@ function bindEvents() {
 
   [el.carStyle, el.vehicleClass, el.seatFocus, el.noiseLevel, el.playerA, el.playerB, el.matchFocus, el.eqTopology, el.exportFormat].forEach((control) => {
     control.addEventListener("change", fitEq);
+  });
+
+  el.carStyle.addEventListener("change", () => {
+    updateCarTargetNote();
+  });
+
+  el.graphicPreset.addEventListener("change", () => {
+    const preset = GRAPHIC_EQ_PRESETS[el.graphicPreset.value];
+    if (preset && el.graphicPreset.value !== "custom") {
+      el.graphicBands.value = formatGraphicBandsInput(preset.bands);
+      el.graphicGainStep.value = preset.gainStep.toFixed(Math.max(0, countStepDigits(preset.gainStep)));
+    }
+    updateGraphicEqUi();
+    fitEq();
+  });
+
+  el.graphicBands.addEventListener("input", () => {
+    updateGraphicEqUi();
+    if (el.graphicPreset.value === "custom") fitEq();
+  });
+
+  el.graphicGainStep.addEventListener("input", () => {
+    updateGraphicEqUi();
+    fitEq();
   });
 
   el.airiness.addEventListener("input", () => {
@@ -2036,7 +2446,10 @@ function bindEvents() {
 
 function init() {
   state.language = localStorage.getItem(LANGUAGE_STORAGE_KEY) || "zh-CN";
+  el.graphicBands.value = formatGraphicBandsInput(GRAPHIC_EQ_PRESETS.custom.bands);
+  el.graphicGainStep.value = GRAPHIC_EQ_PRESETS[DEFAULT_GRAPHIC_PRESET].gainStep.toFixed(1);
   applyI18n();
+  updateGraphicEqUi();
   populatePresetSelect();
   bindEvents();
   updateMeasurementUi();

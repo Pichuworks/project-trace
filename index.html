@@ -78,6 +78,24 @@
             <p class="hint" data-i18n="measurement_hint">
               将设备麦克风放在听音位置。应用会播放分段扫频，并提取一条相对响应曲线。
             </p>
+            <div class="control-grid">
+              <div class="control-group">
+                <label for="measurement-resolution" data-i18n="measurement_resolution">扫频精度</label>
+                <select id="measurement-resolution">
+                  <option value="standard" data-i18n="measurement_resolution_standard">标准 31 点</option>
+                  <option value="fine" data-i18n="measurement_resolution_fine">精细 61 点</option>
+                  <option value="detailed" data-i18n="measurement_resolution_detailed">细致 91 点</option>
+                </select>
+              </div>
+              <div class="control-group">
+                <label for="measurement-passes" data-i18n="measurement_passes">重复次数</label>
+                <select id="measurement-passes">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                </select>
+              </div>
+            </div>
             <div class="action-grid two-up">
               <button id="start-measurement" class="primary-action" data-i18n="run_measurement">开始测量</button>
               <button id="download-measurement" class="secondary-action" disabled data-i18n="download_curve">下载曲线</button>
@@ -108,7 +126,11 @@
                   <option value="warm" data-i18n="style_warm">偏暖</option>
                   <option value="clarity" data-i18n="style_clarity">清晰</option>
                   <option value="highway" data-i18n="style_highway">高速</option>
+                  <option value="harman" data-i18n="style_harman">Harman</option>
+                  <option value="bk-house" data-i18n="style_bk_house">B&K House</option>
+                  <option value="studio-neutral" data-i18n="style_studio_neutral">Studio Neutral</option>
                 </select>
+                <p id="target-style-note" class="hint" data-i18n="target_style_note_default">带明确名称的曲线在这里作为实用近似，不代表原始厂商或论文的精确官方目标。</p>
               </div>
               <div class="control-grid">
                 <div class="control-group">
@@ -193,7 +215,7 @@
                 <label for="eq-topology" data-i18n="output_eq">输出 EQ</label>
                 <select id="eq-topology">
                   <option value="all" data-i18n="output_all">全部输出</option>
-                  <option value="graphic10" data-i18n="output_graphic10">10 段图示 EQ</option>
+                  <option value="graphic10" data-i18n="output_graphic">图示 EQ</option>
                   <option value="parametric" data-i18n="output_parametric">参数 EQ</option>
                   <option value="hybrid" data-i18n="output_hybrid">混合摘要</option>
                 </select>
@@ -204,6 +226,30 @@
                 <p class="value-readout"><span data-i18n="clamp_at">限制在</span> <span id="max-boost-readout">4.0</span> dB</p>
               </div>
             </div>
+            <div class="control-grid">
+              <div class="control-group">
+                <label for="graphic-preset" data-i18n="graphic_eq_preset">图示 EQ 预设</label>
+                <select id="graphic-preset">
+                  <option value="classic-10" data-i18n="graphic_preset_classic10">经典 10 段</option>
+                  <option value="car-16" data-i18n="graphic_preset_car16">车机 16 段</option>
+                  <option value="custom" data-i18n="graphic_preset_custom">自定义</option>
+                </select>
+              </div>
+              <div class="control-group">
+                <label for="graphic-gain-step" data-i18n="graphic_gain_step">增益步进</label>
+                <input id="graphic-gain-step" type="number" min="0.1" max="3" step="0.1" value="0.5" />
+              </div>
+            </div>
+            <div id="graphic-bands-wrap" class="control-group hidden">
+              <label for="graphic-bands" data-i18n="graphic_bands">图示 EQ 频段</label>
+              <input
+                id="graphic-bands"
+                type="text"
+                placeholder="31, 46, 63, 125, 230, 400, 630, 810, 1k, 2k, 4k, 6k, 8k, 12k, 14k, 16k"
+                data-i18n-placeholder="graphic_bands_placeholder"
+              />
+            </div>
+            <p id="graphic-config-status" class="hint" data-i18n="graphic_config_ready">图示 EQ 已准备好。</p>
             <button id="fit-button" class="primary-action" data-i18n="generate_eq">生成 EQ</button>
             <p class="hint" data-i18n="broad_corrections_hint">优先做宽带修正。窄陷波会被刻意弱化处理。</p>
           </div>
@@ -322,7 +368,7 @@
             <div class="output-grid">
               <div id="graphic-section" class="result-block">
                 <div class="block-heading">
-                  <p class="eyebrow" data-i18n="eq_10_band">10 段 EQ</p>
+                  <p id="graphic-eyebrow" class="eyebrow">10 段 EQ</p>
                   <h3 data-i18n="graphic">图示 EQ</h3>
                 </div>
                 <div id="graphic-output" class="eq-list"></div>
@@ -353,7 +399,7 @@
                 <select id="export-format">
                   <option value="generic-parametric" data-i18n="export_generic_parametric">通用参数 EQ 文本</option>
                   <option value="equalizer-apo" data-i18n="export_equalizer_apo">Equalizer APO 文本</option>
-                  <option value="graphic-summary" data-i18n="export_graphic_summary">10 段摘要</option>
+                  <option id="graphic-summary-option" value="graphic-summary">10 段摘要</option>
                   <option value="session-json" data-i18n="export_session_json">会话 JSON</option>
                 </select>
               </div>
